@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auftragsverwaltung</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; text-align: center; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        .auftrag { border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 8px; background: #fff; }
+        .status { cursor: pointer; color: blue; }
+        button { background: #007bff; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        input, select { padding: 10px; margin: 5px; border: 1px solid #ccc; border-radius: 5px; }
+        img { border-radius: 5px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Auftragsverwaltung</h1>
+        <input type="text" id="auftragText" placeholder="Neuer Auftrag">
+        <input type="file" id="imageUpload" accept="image/*">
+        <button onclick="addAuftrag()">Hinzufügen</button>
+        <div id="auftragsListe"></div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", loadAufträge);
+
+        function addAuftrag() {
+            let text = document.getElementById("auftragText").value;
+            let file = document.getElementById("imageUpload").files[0];
+            if (!text) return;
+
+            let aufträge = JSON.parse(localStorage.getItem("aufträge")) || [];
+            let id = Date.now();
+            let imgUrl = "";
+
+            if (file) {
+                let reader = new FileReader();
+                reader.onload = function (e) {
+                    imgUrl = e.target.result;
+                    aufträge.push({ id, text, status: "Offen", imgUrl });
+                    localStorage.setItem("aufträge", JSON.stringify(aufträge));
+                    loadAufträge();
+                };
+                reader.readAsDataURL(file);
+            } else {
+                aufträge.push({ id, text, status: "Offen", imgUrl });
+                localStorage.setItem("aufträge", JSON.stringify(aufträge));
+                loadAufträge();
+            }
+        }
+
+        function loadAufträge() {
+            let aufträge = JSON.parse(localStorage.getItem("aufträge")) || [];
+            let list = document.getElementById("auftragsListe");
+            list.innerHTML = "";
+            aufträge.forEach(a => {
+                let div = document.createElement("div");
+                div.classList.add("auftrag");
+                div.innerHTML = `
+                    <p>${a.text}</p>
+                    <p class="status" onclick="changeStatus(${a.id})">Status: ${a.status}</p>
+                    ${a.imgUrl ? `<img src="${a.imgUrl}" width="100"><br><a href="${a.imgUrl}" download>Bild herunterladen</a>` : `<br><input type="file" accept="image/*" onchange="addImage(${a.id}, this)">`}
+                    <button onclick="deleteAuftrag(${a.id})">Löschen</button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function addImage(id, input) {
+            let file = input.files[0];
+            if (!file) return;
+            
+            let reader = new FileReader();
+            reader.onload = function (e) {
+                let aufträge = JSON.parse(localStorage.getItem("aufträge")) || [];
+                let auftrag = aufträge.find(a => a.id === id);
+                if (auftrag) {
+                    auftrag.imgUrl = e.target.result;
+                    localStorage.setItem("aufträge", JSON.stringify(aufträge));
+                    loadAufträge();
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function changeStatus(id) {
+            let aufträge = JSON.parse(localStorage.getItem("aufträge")) || [];
+            let auftrag = aufträge.find(a => a.id === id);
+            auftrag.status = auftrag.status === "Offen" ? "Erledigt" : "Offen";
+            localStorage.setItem("aufträge", JSON.stringify(aufträge));
+            loadAufträge();
+        }
+
+        function deleteAuftrag(id) {
+            let aufträge = JSON.parse(localStorage.getItem("aufträge")) || [];
+            aufträge = aufträge.filter(a => a.id !== id);
+            localStorage.setItem("aufträge", JSON.stringify(aufträge));
+            loadAufträge();
+        }
+    </script>
+</body>
+</html>
